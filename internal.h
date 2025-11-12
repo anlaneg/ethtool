@@ -216,9 +216,16 @@ struct ethtool_module_eeprom {
 struct cmd_context {
     /*要操纵的设备名称*/
 	const char *devname;	/* net device name */
+	/*
+	 * 计划使用的socket,默认为socket(AF_INET, SOCK_DGRAM, 0)，
+	 * 可回退到socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC)
+	 * */
 	int fd;			/* socket suitable for ethtool ioctl */
+	/*接口相关的请求结构体*/
 	struct ifreq ifr;	/* ifreq suitable for ethtool ioctl */
+	/*命令参数数目*/
 	unsigned int argc;	/* number of arguments to the sub-command */
+	/*命令参数详情*/
 	char **argp;		/* arguments to the sub-command */
 	unsigned long debug;	/* debugging mask */
 	bool json;		/* Output JSON, if supported */

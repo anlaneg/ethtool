@@ -20,6 +20,7 @@ static void invert_flow_mask(struct ethtool_rx_flow_spec *fsp)
 		fsp->m_u.hdata[i] ^= 0xFF;
 }
 
+/*显示src-ip,src-ip-mask,dst-ip,dst-ip-mask,tos,tos-mask这些字段*/
 static void rxclass_print_ipv4_rule(__be32 sip, __be32 sipm, __be32 dip,
 				    __be32 dipm, u8 tos, u8 tosm)
 {
@@ -72,6 +73,7 @@ static void rxclass_print_nfc_spec_ext(struct ethtool_rx_flow_spec *fsp)
 		datam = (u64)ntohl(~fsp->m_ext.data[0]) << 32;
 		datam |= (u64)ntohl(~fsp->m_ext.data[1]);
 
+		/*vlan相关规则字段*/
 		fprintf(stdout,
 			"\tVLAN EtherType: 0x%x mask: 0x%x\n"
 			"\tVLAN: 0x%x mask: 0x%x\n"
@@ -80,6 +82,7 @@ static void rxclass_print_nfc_spec_ext(struct ethtool_rx_flow_spec *fsp)
 	}
 
 	if (fsp->flow_type & FLOW_MAC_EXT) {
+	    /*mac扩展相关字段*/
 		unsigned char *dmac, *dmacm;
 
 		dmac = fsp->h_ext.h_dest;
@@ -94,12 +97,14 @@ static void rxclass_print_nfc_spec_ext(struct ethtool_rx_flow_spec *fsp)
 	}
 }
 
+/*显示规则内容*/
 static void rxclass_print_nfc_rule(struct ethtool_rx_flow_spec *fsp,
-				   __u32 rss_context)
+				   __u32 rss_context/*重定向的rss index*/)
 {
 	unsigned char	*smac, *smacm, *dmac, *dmacm;
 	__u32		flow_type;
 
+	/*显示规则索引*/
 	fprintf(stdout,	"Filter: %d\n", fsp->location);
 
 	flow_type = fsp->flow_type & ~(FLOW_EXT | FLOW_MAC_EXT | FLOW_RSS);
@@ -111,17 +116,21 @@ static void rxclass_print_nfc_rule(struct ethtool_rx_flow_spec *fsp,
 	case UDP_V4_FLOW:
 	case SCTP_V4_FLOW:
 		if (flow_type == TCP_V4_FLOW)
+			/*ipv4上的tcp*/
 			fprintf(stdout, "\tRule Type: TCP over IPv4\n");
 		else if (flow_type == UDP_V4_FLOW)
+			/*ipv4上的udp*/
 			fprintf(stdout, "\tRule Type: UDP over IPv4\n");
 		else
 			fprintf(stdout, "\tRule Type: SCTP over IPv4\n");
+		/*显示ipv4规则*/
 		rxclass_print_ipv4_rule(fsp->h_u.tcp_ip4_spec.ip4src,
 				     fsp->m_u.tcp_ip4_spec.ip4src,
 				     fsp->h_u.tcp_ip4_spec.ip4dst,
 				     fsp->m_u.tcp_ip4_spec.ip4dst,
 				     fsp->h_u.tcp_ip4_spec.tos,
 				     fsp->m_u.tcp_ip4_spec.tos);
+		/*显示port规则*/
 		fprintf(stdout,
 			"\tSrc port: %d mask: 0x%x\n"
 			"\tDest port: %d mask: 0x%x\n",
@@ -132,6 +141,7 @@ static void rxclass_print_nfc_rule(struct ethtool_rx_flow_spec *fsp,
 		break;
 	case AH_V4_FLOW:
 	case ESP_V4_FLOW:
+	    /*显示AH，ESP 相关规则字段*/
 		if (flow_type == AH_V4_FLOW)
 			fprintf(stdout, "\tRule Type: IPSEC AH over IPv4\n");
 		else
@@ -148,6 +158,7 @@ static void rxclass_print_nfc_rule(struct ethtool_rx_flow_spec *fsp,
 			ntohl(fsp->m_u.esp_ip4_spec.spi));
 		break;
 	case IPV4_USER_FLOW:
+		/*用户定义的raw ipv4*/
 		fprintf(stdout, "\tRule Type: Raw IPv4\n");
 		rxclass_print_ipv4_rule(fsp->h_u.usr_ip4_spec.ip4src,
 				     fsp->m_u.usr_ip4_spec.ip4src,
@@ -166,6 +177,7 @@ static void rxclass_print_nfc_rule(struct ethtool_rx_flow_spec *fsp,
 	case TCP_V6_FLOW:
 	case UDP_V6_FLOW:
 	case SCTP_V6_FLOW:
+	    /*显示v6相关规则*/
 		if (flow_type == TCP_V6_FLOW)
 			fprintf(stdout, "\tRule Type: TCP over IPv6\n");
 		else if (flow_type == UDP_V6_FLOW)
@@ -220,6 +232,7 @@ static void rxclass_print_nfc_rule(struct ethtool_rx_flow_spec *fsp,
 			ntohl(fsp->m_u.usr_ip6_spec.l4_4_bytes));
 		break;
 	case ETHER_FLOW:
+	    /*显示以太头相关规则字段*/
 		dmac = fsp->h_u.ether_spec.h_dest;
 		dmacm = fsp->m_u.ether_spec.h_dest;
 		smac = fsp->h_u.ether_spec.h_source;
@@ -241,16 +254,20 @@ static void rxclass_print_nfc_rule(struct ethtool_rx_flow_spec *fsp,
 			ntohs(fsp->m_u.ether_spec.h_proto));
 		break;
 	default:
+	    /*遇到不认识的字段类型*/
 		fprintf(stdout,
 			"\tUnknown Flow type: %d\n", flow_type);
 		break;
 	}
 
+	/*显示扩展字段内容*/
 	rxclass_print_nfc_spec_ext(fsp);
 
 	if (fsp->ring_cookie == RX_CLS_FLOW_DISC) {
+	    /*执行丢包*/
 		fprintf(stdout, "\tAction: Drop\n");
 	} else if (fsp->ring_cookie == RX_CLS_FLOW_WAKE) {
+	    /*执行wake-on-lan*/
 		fprintf(stdout, "\tAction: Wake-on-LAN\n");
 	} else if (fsp->flow_type & FLOW_RSS) {
 		u64 queue = ethtool_get_flow_spec_ring(fsp->ring_cookie);
@@ -260,7 +277,9 @@ static void rxclass_print_nfc_rule(struct ethtool_rx_flow_spec *fsp,
 			fprintf(stdout, " (queue base offset: %llu)", queue);
 		fprintf(stdout, "\n");
 	} else {
+	    /*指明导入到具体vf*/
 		u64 vf = ethtool_get_flow_spec_ring_vf(fsp->ring_cookie);
+		/*指明导入到具体queue*/
 		u64 queue = ethtool_get_flow_spec_ring(fsp->ring_cookie);
 
 		/* A value of zero indicates that this rule targeted the main
@@ -310,12 +329,13 @@ static void rxclass_print_rule(struct ethtool_rx_flow_spec *fsp,
 	}
 }
 
-static int rxclass_get_dev_info(struct cmd_context *ctx, __u32 *count,
-				int *driver_select)
+static int rxclass_get_dev_info(struct cmd_context *ctx, __u32 *count/*出参，rx分类规则数量*/,
+				int *driver_select/*出参，是否有LOC_SPECIAL标记*/)
 {
 	struct ethtool_rxnfc nfccmd;
 	int err;
 
+	/*取rx分类规则数量*/
 	nfccmd.cmd = ETHTOOL_GRXCLSRLCNT;
 	nfccmd.data = 0;
 	err = send_ioctl(ctx, &nfccmd);
@@ -328,6 +348,7 @@ static int rxclass_get_dev_info(struct cmd_context *ctx, __u32 *count,
 	return err;
 }
 
+/*获取并显示指定rx class规则内容*/
 int rxclass_rule_get(struct cmd_context *ctx, __u32 loc)
 {
 	struct ethtool_rxnfc nfccmd;
@@ -344,7 +365,7 @@ int rxclass_rule_get(struct cmd_context *ctx, __u32 loc)
 	}
 
 	/* display rule */
-	rxclass_print_rule(&nfccmd.fs, (__u32)nfccmd.rss_context);
+	rxclass_print_rule(&nfccmd.fs, (__u32)nfccmd.rss_context);/*显示获取到的规则*/
 	return err;
 }
 
@@ -357,10 +378,11 @@ int rxclass_rule_getall(struct cmd_context *ctx)
 	int err;
 
 	/* determine rule count */
-	err = rxclass_get_dev_info(ctx, &count, NULL);
+	err = rxclass_get_dev_info(ctx, &count, NULL);/*先取规则数量*/
 	if (err < 0)
 		return err;
 
+	/*指明当前FD规则数量*/
 	fprintf(stdout, "Total %d rules\n\n", count);
 
 	/* alloc memory for request of location list */
@@ -372,7 +394,7 @@ int rxclass_rule_getall(struct cmd_context *ctx)
 	}
 
 	/* request location list */
-	nfccmd->cmd = ETHTOOL_GRXCLSRLALL;
+	nfccmd->cmd = ETHTOOL_GRXCLSRLALL;/*请求各FD规则对应的索引*/
 	nfccmd->rule_cnt = count;
 	err = send_ioctl(ctx, nfccmd);
 	if (err < 0) {
@@ -384,6 +406,7 @@ int rxclass_rule_getall(struct cmd_context *ctx)
 	/* write locations to bitmap */
 	rule_locs = nfccmd->rule_locs;
 	for (i = 0; i < count; i++) {
+	    /*通过各FD索引请求FD规则内容*/
 		err = rxclass_rule_get(ctx, rule_locs[i]);
 		if (err < 0)
 			break;
@@ -605,6 +628,7 @@ int rxclass_rule_ins(struct cmd_context *ctx,
 	return err;
 }
 
+/*移除掉指定序号对应的rx class rule*/
 int rxclass_rule_del(struct cmd_context *ctx, __u32 loc)
 {
 	struct ethtool_rxnfc nfccmd;
@@ -1314,6 +1338,7 @@ int rxclass_parse_ruleopts(struct cmd_context *ctx,
 	case TCP_V4_FLOW:
 	case UDP_V4_FLOW:
 	case SCTP_V4_FLOW:
+		/*取options及其对应的选项size*/
 		options = rule_nfc_tcp_ip4;
 		n_opts = ARRAY_SIZE(rule_nfc_tcp_ip4);
 		break;
@@ -1391,16 +1416,19 @@ int rxclass_parse_ruleopts(struct cmd_context *ctx,
 			continue;
 		}
 
+		/*遍历此flow type对应的option*/
 		for (opt = options, idx = 0; idx < n_opts; idx++, opt++) {
 			char mask_name[16];
 
 			if (strcmp(argp[i], opt->name))
+				/*opt名称不一致，忽略*/
 				continue;
 
 			i++;
 			if (i >= argc)
 				break;
 
+			/*解析其对应值*/
 			err = rxclass_get_val(argp[i], p, &flags, opt);
 			if (err) {
 				fprintf(stderr, "Invalid %s value[%s]\n",
