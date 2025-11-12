@@ -33,3 +33,5 @@ test-*.trs
 .cproject
 .project
 .settings/
+.dirstamp
+tags
