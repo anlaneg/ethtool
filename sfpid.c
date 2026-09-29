@@ -331,11 +331,27 @@ static void sff8079_show_rate_identifier(const __u8 *id)
 		sprintf(description, "%s", "8/4/2G Rx Rate_Select only");
 		break;
 	case 0x03:
+	case 0x06:
 		sprintf(description, "%s",
 			"8/4/2G Independent Rx & Tx Rate_Select");
 		break;
 	case 0x04:
 		sprintf(description, "%s", "8/4/2G Tx Rate_Select only");
+		break;
+	case 0x08:
+		sprintf(description, "%s", "16/8/4G Rx Rate_Select only");
+		break;
+	case 0x0a:
+		sprintf(description, "%s",
+			"16/8/4G Independent Rx & Tx Rate_Select");
+		break;
+	case 0x0c:
+		sprintf(description, "%s",
+			"32/16/8G Independent Rx & Tx Rate_Select");
+		break;
+	case 0x10:
+		sprintf(description, "%s",
+			"64/32/16G Independent Rx & Tx Rate_Select");
 		break;
 	default:
 		sprintf(description, "%s", "reserved or unknown");
