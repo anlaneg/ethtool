@@ -1,3 +1,23 @@
+Version 7.2 - Oct 19, 2026
+	* Feature: support for KSZ87xx PHY tunables (--{get,set}-phy-tunable)
+	* Fix: cmis: fix printing of Tx bias current (-m)
+	* Fix: cmis: fix printing of channel-level flags (-m)
+	* Fix: cmis: fix printing of CDB EPL pages (-m)
+	* Fix: printing of transmitter technology for CMIS transceivers (-m)
+	* Fix: avoid undefined behavior with CMIS transceivers (-m)
+	* Fix: add missing CMIS transmitter technologies (-m)
+	* Fix: printing of attenuation and wavelength (-m)
+	* Fix: printing of link length (-m)
+	* Fix: sfpid: print all implemented options (-m)
+	* Fix: sfpid: print all compliance codes (-m)
+	* Fix: qsfp: print all compliance codes (-m)
+	* Fix: module-eeprom: clamp data length to attribute payload size (-m)
+	* Fix: validate module EEPROM offset and length (-m)
+	* Fix: rss: bound hash function masks in text and JSON output (-x)
+	* Fix: fbnic: fix off-by-one shift in reg dump parser (-d)
+	* Fix: fbnic: Fix various TX and RX CSR fields decoding (-d)
+	* Fix: fbnic: Fix register dump names and bit labels (-d)
+
 Version 7.1 - Jul 7, 2026
 	* Feature: track TX pause storm events (-I -a)
 	* Feature: update doc for ETHTOOL_PFC_PREVENTION_TOUT tunable
