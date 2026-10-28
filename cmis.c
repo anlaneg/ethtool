@@ -188,6 +188,7 @@ static void cmis_show_cbl_asm_len(const struct cmis_memory_map *map)
  */
 static void cmis_print_smf_cbl_len(const struct cmis_memory_map *map)
 {
+	static const float smf_mul2[] = { 50.0f, 100.0f, 200.0f, 500.0f };
 	static const char *fn = "Length (SMF)";
 	float mul = 1.0f;
 	float val = 0.0f;
@@ -203,7 +204,12 @@ static void cmis_print_smf_cbl_len(const struct cmis_memory_map *map)
 	case CMIS_MULTIPLIER_01:
 		mul = 1.0f;
 		break;
-	default:
+	case CMIS_MULTIPLIER_10:
+		mul = 10.0f;
+		break;
+	case CMIS_MULTIPLIER_11:
+		mul = smf_mul2[(map->page_01h[CMIS_SMF_LEN_MUL2_OFFSET] &
+				CMIS_LEN_MUL_MASK) >> 6];
 		break;
 	}
 
@@ -254,11 +260,21 @@ static void cmis_show_sig_integrity(const struct cmis_memory_map *map)
  */
 static void cmis_show_mit_compliance(const struct cmis_memory_map *map)
 {
-	u16 value = map->page_00h[CMIS_MEDIA_INTF_TECH_OFFSET];
+	__u8 value = map->page_00h[CMIS_MEDIA_INTF_TECH_OFFSET];
+	float wl, wl_tol;
 
 	module_show_mit_compliance(value);
 
-	if (value >= CMIS_COPPER_UNEQUAL) {
+	switch (value) {
+	case MODULE_TT_COPPER_UNEQUAL:
+	case MODULE_TT_COPPER_PASS_EQUAL:
+	case MODULE_TT_COPPER_NF_EQUAL:
+	case MODULE_TT_COPPER_F_EQUAL:
+	case MODULE_TT_COPPER_N_EQUAL:
+	case MODULE_TT_COPPER_LINEAR_EQUAL:
+	case MODULE_TT_COPPER_NF_LINEAR:
+	case MODULE_TT_COPPER_F_LINEAR:
+	case MODULE_TT_COPPER_N_LINEAR:
 		module_print_any_uint("Attenuation at 5GHz",
 				      map->page_00h[CMIS_COPPER_ATT_5GHZ], "db");
 		module_print_any_uint("Attenuation at 7GHz",
@@ -269,15 +285,20 @@ static void cmis_show_mit_compliance(const struct cmis_memory_map *map)
 		module_print_any_uint("Attenuation at 25.8GHz",
 				      map->page_00h[CMIS_COPPER_ATT_25P8GHZ],
 				      "db");
-	} else if (map->page_01h) {
-		module_print_any_float("Laser wavelength",
-				       (((map->page_01h[CMIS_NOM_WAVELENGTH_MSB] << 8) |
-				        map->page_01h[CMIS_NOM_WAVELENGTH_LSB]) * 0.05),
+		break;
+	default:
+		if (!map->page_01h)
+			break;
+		wl = ((map->page_01h[CMIS_NOM_WAVELENGTH_MSB] << 8) |
+		      map->page_01h[CMIS_NOM_WAVELENGTH_LSB]) * 0.05;
+		wl_tol = ((map->page_01h[CMIS_WAVELENGTH_TOL_MSB] << 8) |
+			  map->page_01h[CMIS_WAVELENGTH_TOL_LSB]) * 0.005;
+		if (!wl)
+			break;
+		module_print_any_float("Laser wavelength", wl, "nm");
+		module_print_any_float("Laser wavelength tolerance", wl_tol,
 				       "nm");
-		module_print_any_float("Laser wavelength tolerance",
-				       (((map->page_01h[CMIS_WAVELENGTH_TOL_MSB] << 8) |
-				        map->page_01h[CMIS_NOM_WAVELENGTH_LSB]) * 0.05),
-				       "nm");
+		break;
 	}
 }
 
@@ -517,7 +538,7 @@ cmis_parse_dom_chan_lvl_monitors_bank(const struct cmis_memory_map *map,
 
 		sd->scd[chan].bias_cur = OFFSET_TO_U16_PTR(page_11h,
 							   tx_bias_offset);
-		sd->scd[chan].bias_cur >>= bias_mul;
+		sd->scd[chan].bias_cur <<= bias_mul;
 		sd->scd[chan].rx_power = OFFSET_TO_U16_PTR(page_11h,
 							   rx_power_offset);
 		sd->scd[chan].tx_power = OFFSET_TO_U16_PTR(page_11h,
@@ -544,16 +565,16 @@ static void cmis_parse_dom_chan_lvl_thresh(const struct cmis_memory_map *map,
 
 	sd->bias_cur[HALRM] = OFFSET_TO_U16_PTR(map->page_02h,
 						CMIS_TX_BIAS_HALRM_OFFSET);
-	sd->bias_cur[HALRM] >>= bias_mul;
+	sd->bias_cur[HALRM] <<= bias_mul;
 	sd->bias_cur[LALRM] = OFFSET_TO_U16_PTR(map->page_02h,
 						CMIS_TX_BIAS_LALRM_OFFSET);
-	sd->bias_cur[LALRM] >>= bias_mul;
+	sd->bias_cur[LALRM] <<= bias_mul;
 	sd->bias_cur[HWARN] = OFFSET_TO_U16_PTR(map->page_02h,
 						CMIS_TX_BIAS_HWARN_OFFSET);
-	sd->bias_cur[HWARN] >>= bias_mul;
+	sd->bias_cur[HWARN] <<= bias_mul;
 	sd->bias_cur[LWARN] = OFFSET_TO_U16_PTR(map->page_02h,
 						CMIS_TX_BIAS_LWARN_OFFSET);
-	sd->bias_cur[LWARN] >>= bias_mul;
+	sd->bias_cur[LWARN] <<= bias_mul;
 
 	sd->tx_power[HALRM] = OFFSET_TO_U16_PTR(map->page_02h,
 						CMIS_TX_PWR_HALRM_OFFSET);
@@ -766,7 +787,7 @@ static void cmis_show_dom_chan_lvl_flag(const struct cmis_memory_map *map,
 		char str[80];
 		bool value;
 
-		value = page_11h[module_aw_chan_flags[flag].offset] & chan;
+		value = page_11h[module_aw_chan_flags[flag].offset] & (1 << i);
 		if (is_json_context()) {
 			print_bool(PRINT_JSON, NULL, NULL, value);
 		} else {
@@ -924,10 +945,14 @@ static void cmis_show_cdb_mode(const struct cmis_memory_map *map)
 
 static void cmis_show_cdb_epl_pages(const struct cmis_memory_map *map)
 {
-	__u8 epl_pages = map->page_01h[CMIS_CDB_ADVER_OFFSET] &
-			 CMIS_CDB_ADVER_EPL_MASK;
+	static const __u8 epl_page_count[] = { 0, 1, 2, 3, 4, 8, 12, 16 };
+	__u8 epl = map->page_01h[CMIS_CDB_ADVER_OFFSET] &
+		CMIS_CDB_ADVER_EPL_MASK;
 
-	module_print_any_uint("CDB EPL pages", epl_pages, NULL);
+	if (epl >= ARRAY_SIZE(epl_page_count))
+		return;
+
+	module_print_any_uint("CDB EPL pages", epl_page_count[epl], NULL);
 }
 
 static void cmis_show_cdb_rw_len(const struct cmis_memory_map *map)
@@ -1020,6 +1045,64 @@ void cmis_show_all_ioctl(const __u8 *id)
 
 	cmis_memory_map_init_buf(&map, id);
 	cmis_show_all_common(&map);
+}
+
+static void cmis_hex_dump(struct cmd_context *ctx,
+			  const struct cmis_memory_map *map)
+{
+	struct module_eeprom_dump dump = {
+		.length = CMIS_PAGE_SIZE,
+		.i2c_address = CMIS_I2C_ADDRESS,
+		.print_bank = true,
+	};
+	u8 bank, page;
+
+	new_json_obj(ctx->json);
+	if (is_json_context()) {
+		open_json_object(NULL);
+		open_json_array("pages", "");
+	}
+
+	dump.data = map->lower_memory;
+	module_dump_eeprom_hex(&dump);
+
+	for (bank = 0; bank < CMIS_MAX_BANKS; bank++) {
+		for (page = 0; page < CMIS_MAX_PAGES; page++) {
+			const __u8 *buf = map->upper_memory[bank][page];
+
+			if (!buf)
+				continue;
+
+			/* Upper memory starts at one page size into
+			 * the buffer, since pages are accessed at
+			 * offset between page size and twice the
+			 * page size.
+			 */
+			dump.offset = CMIS_PAGE_SIZE;
+			dump.page = page;
+			dump.bank = bank;
+			dump.data = buf + CMIS_PAGE_SIZE;
+			module_dump_eeprom_hex(&dump);
+		}
+	}
+
+	if (is_json_context()) {
+		close_json_array("");
+		close_json_object();
+	}
+	delete_json_obj();
+}
+
+static void cmis_pretty_print(struct cmd_context *ctx,
+			      const struct cmis_memory_map *map)
+{
+	new_json_obj(ctx->json);
+	open_json_object(NULL);
+
+	cmis_show_all_common(map);
+
+	close_json_object();
+	delete_json_obj();
 }
 
 static void cmis_request_init(struct ethtool_module_eeprom *request, u8 bank,
@@ -1117,21 +1200,19 @@ cmis_memory_map_init_pages(struct cmd_context *ctx,
 	return 0;
 }
 
-int cmis_show_all_nl(struct cmd_context *ctx)
+int cmis_show_all_nl(struct cmd_context *ctx, bool dump_pages)
 {
 	struct cmis_memory_map map = {};
 	int ret;
 
-	new_json_obj(ctx->json);
-	open_json_object(NULL);
-
 	ret = cmis_memory_map_init_pages(ctx, &map);
 	if (ret < 0)
 		return ret;
-	cmis_show_all_common(&map);
 
-	close_json_object();
-	delete_json_obj();
+	if (dump_pages)
+		cmis_hex_dump(ctx, &map);
+	else
+		cmis_pretty_print(ctx, &map);
 
 	return 0;
 }

@@ -19,6 +19,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <limits.h>
 #include <endian.h>
 #include <sys/ioctl.h>
 #define __UAPI_DEF_IF_IFNAMSIZ	1
@@ -293,6 +294,11 @@ int test_fclose(FILE *fh);
 int ioctl_init(struct cmd_context *ctx, bool no_dev);
 int send_ioctl(struct cmd_context *ctx, void *cmd);
 
+int parse_hkey(char **rss_hkey, u32 key_size, const char *rss_hkey_string);
+int fill_indir_table(u32 *indir_size, u32 *indir, int rxfhindir_default,
+		     int rxfhindir_start, int rxfhindir_equal,
+		     char **rxfhindir_weight, u32 num_weights);
+
 void dump_hex(FILE *f, const u8 *data, int len, int offset);
 
 /* National Semiconductor DP83815, DP83816 */
@@ -388,14 +394,14 @@ int rxclass_rule_del(struct cmd_context *ctx, __u32 loc);
 
 /* Module EEPROM parsing code */
 void sff8079_show_all_ioctl(const __u8 *id);
-int sff8079_show_all_nl(struct cmd_context *ctx);
+int sff8079_show_all_nl(struct cmd_context *ctx, bool dump_pages);
 
 /* Optics diagnostics */
 void sff8472_show_all(const __u8 *id);
 
 /* QSFP Optics diagnostics */
 void sff8636_show_all_ioctl(const __u8 *id, __u32 eeprom_len);
-int sff8636_show_all_nl(struct cmd_context *ctx);
+int sff8636_show_all_nl(struct cmd_context *ctx, bool dump_pages);
 
 /* FUJITSU Extended Socket network device */
 int fjes_dump_regs(struct ethtool_drvinfo *info, struct ethtool_regs *regs);

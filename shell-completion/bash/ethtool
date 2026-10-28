@@ -259,6 +259,8 @@ _ethtool_coalesce()
 		[tx-aggr-max-bytes]=1
 		[tx-aggr-max-frames]=1
 		[tx-aggr-time-usecs]=1
+		[rx-cqe-frames]=1
+		[rx-cqe-nsecs]=1
 	)
 
 	case "$prev" in
@@ -657,7 +659,7 @@ _ethtool_get_dump()
 _ethtool_get_phy_tunable()
 {
 	if [ "$cword" -eq 3 ]; then
-		COMPREPLY=( $( compgen -W downshift -- "$cur" ) )
+		COMPREPLY=( $( compgen -W 'downshift fast-link-down energy-detect-power-down short-cable-preset lpf-bandwidth dsp-eq-init-value' -- "$cur" ) )
 		return
 	fi
 }
@@ -669,11 +671,13 @@ _ethtool_module_info()
 		[hex]=1
 		[length]=1
 		[offset]=1
+		[pages]=1
 		[raw]=1
 	)
 
 	case "$prev" in
 		hex|\
+		pages|\
 		raw)
 			COMPREPLY=( $( compgen -W 'on off' -- "$cur" ) )
 			return ;;
@@ -1021,13 +1025,21 @@ _ethtool_set_phy_tunable()
 {
 	case "$cword" in
 		3)
-			COMPREPLY=( $( compgen -W downshift -- "$cur" ) )
+			COMPREPLY=( $( compgen -W 'downshift fast-link-down energy-detect-power-down short-cable-preset lpf-bandwidth dsp-eq-init-value' -- "$cur" ) )
 			return ;;
 		4)
-			COMPREPLY=( $( compgen -W 'on off' -- "$cur" ) )
+			case "${words[3]}" in
+				downshift|fast-link-down|energy-detect-power-down|short-cable-preset)
+					COMPREPLY=( $( compgen -W 'on off' -- "$cur" ) ) ;;
+			esac
 			return ;;
 		5)
-			COMPREPLY=( $( compgen -W count -- "$cur" ) )
+			case "${words[3]}" in
+				downshift)
+					COMPREPLY=( $( compgen -W count -- "$cur" ) ) ;;
+				fast-link-down|energy-detect-power-down)
+					COMPREPLY=( $( compgen -W msecs -- "$cur" ) ) ;;
+			esac
 			return ;;
 	esac
 }

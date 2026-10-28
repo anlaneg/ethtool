@@ -1,3 +1,58 @@
+Version 7.2 - Oct 19, 2026
+	* Feature: support for KSZ87xx PHY tunables (--{get,set}-phy-tunable)
+	* Fix: cmis: fix printing of Tx bias current (-m)
+	* Fix: cmis: fix printing of channel-level flags (-m)
+	* Fix: cmis: fix printing of CDB EPL pages (-m)
+	* Fix: printing of transmitter technology for CMIS transceivers (-m)
+	* Fix: avoid undefined behavior with CMIS transceivers (-m)
+	* Fix: add missing CMIS transmitter technologies (-m)
+	* Fix: printing of attenuation and wavelength (-m)
+	* Fix: printing of link length (-m)
+	* Fix: sfpid: print all implemented options (-m)
+	* Fix: sfpid: print all compliance codes (-m)
+	* Fix: qsfp: print all compliance codes (-m)
+	* Fix: module-eeprom: clamp data length to attribute payload size (-m)
+	* Fix: validate module EEPROM offset and length (-m)
+	* Fix: rss: bound hash function masks in text and JSON output (-x)
+	* Fix: fbnic: fix off-by-one shift in reg dump parser (-d)
+	* Fix: fbnic: Fix various TX and RX CSR fields decoding (-d)
+	* Fix: fbnic: Fix register dump names and bit labels (-d)
+
+Version 7.1 - Jul 7, 2026
+	* Feature: track TX pause storm events (-I -a)
+	* Feature: update doc for ETHTOOL_PFC_PREVENTION_TOUT tunable
+	* Feature: RX CQE coalescing params (-c, -C)
+	* Feature: allow hex dump of all pages (-m)
+	* Feature: qsfp: support newer SFF-8636 compliance codes (-m)
+	* Feature: sfpid: support newer SFF-8636 compliance codes (-m)
+	* Fix: document --disable-netlink in help output (-h)
+	* Fix: add missing newlines in FEC output (--show-fec)
+	* Fix: sfpid: fix 10G Base-ER module detection (-m)
+	* Misc: clarify 10000baseCR link mode in man page
+
+Version 7.0 - Apr 28, 2026
+	* Feature: support MSE display (--show-mse)
+	* Feature: add 2 new link_ext_state names
+	* Fix: fix index calculation in ixgbe register dump (-d)
+	* Fix: cmis wavelength tolerance output (-m)
+	* Fix: duplicate sfpid Active Cu compliance output (-m)
+
+Version 6.19 - Feb 14, 2026
+	* Feature: support HW timestamp configuration (--set-hwtimestamp-cfg)
+	* Feature: display HW timestamp source (-T)
+	* Feature: support PLCA notifications (--get/set-plca-cfg)
+	* Feature: add PSE priority management support (--show/set-pse)
+	* Feature: support PSE notifications (--show/set-pse)
+	* Feature: support configuring RSS on IPv6 Flow Label (-n/-N)
+	* Feature: support FEC bit error histograms (--show-fec)
+	* Feature: register dump decoding for TI K3 CPSW and its ALE table (-d)
+	* Fix: fix missing headers in text output
+	* Fix: fix print_string when the value is NULL (-Werror=format-security)
+	* Fix: fix JSON output of SFP diagnostics
+	* Fix: fix duplicated JSON keys in module info
+	* Misc: clarify that symmetric RSS may be on by default (-x/-X)
+	* Misc: add AppStream metainfo file to %files section
+
 Version 6.15 - June 23, 2025
 	* Feature: support OR-XOR symmetric RSS hash type (-x/-X)
 	* Feature: dump registers for hibmcge driver (-d)
